@@ -6,7 +6,7 @@ from users.models import CustomUser
 
 
 class Post(models.Model):
-    id = models.AutoField(primary_key=True)    
+    id = models.AutoField(primary_key=True, unique=True)    
     topic = models.CharField(max_length=256, blank=False, verbose_name='Тема поста')
     content = models.TextField(max_length=4000, blank=False, verbose_name='Текст поста')
     number_likes = models.IntegerField(default=0, blank=True, verbose_name='Лайки')

@@ -25,37 +25,36 @@ class CreatePostAPI(PermissionRequiredMixin, APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
+from users.models import CustomUser
 
 class UpdatePostAPI(PermissionRequiredMixin, APIView):
     permission_required = 'posts.change_post'
     def put(self, request, pk):
         post = Post.objects.get(pk=pk)
         serializer = EditPostSerializer(instance=post, data=request.data, partial=True)
-
+        
+        user = CustomUser.objects.get(pk=request.data['author'])
+        
         if serializer.is_valid():
             new_id = request.data['id']
             
             print(new_id)
-            # Проверка, есть ли запись с таким id 
-            if Post.objects.filter(id=new_id).exists() and new_id != pk:
-                return Response({'error': 'Запись с указанным ID уже существует'}, status=status.HTTP_400_BAD_REQUEST)
+            # После установки свойства уникальности id в модели при запросе на изменение id 
+            # на такой который есть, django выбьет ошибку, и не поменяет id)
+            if new_id != post.id:
+                Post.objects.create(id=new_id, topic=request.data['topic'],  content=request.data['content'], author=user)
+                
+                post.delete()
+            else:
 
-            post.topic = serializer.validated_data.get('topic', post.topic)
-            post.content = serializer.validated_data.get('content', post.content)
-            post.author = serializer.validated_data.get('author', post.author)
-            post.id = new_id
-            post.save()
+                post.topic = serializer.validated_data.get('topic', post.topic)
+                post.content = serializer.validated_data.get('content', post.content)
+                post.author = serializer.validated_data.get('author', post.author)
+                post.save()
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
-class PostDeleteView(PermissionRequiredMixin, APIView):
-    permission_required = 'posts.delete_post'
-    #  PostSerializer используется для сериализации сообщения в JSON
-    #  После сериализации вызывается метод delete() для удаления сообщения
-    #  Сериализованные данные возвращаются в качестве ответа, чтобы клиент мог подтвердить успешное удаление
     def delete(self, request, pk):
         try:
             post = Post.objects.get(pk=pk)
@@ -67,6 +66,24 @@ class PostDeleteView(PermissionRequiredMixin, APIView):
         post.delete()
         # успешный ответ.
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+# class PostDeleteView(PermissionRequiredMixin, APIView):
+#     permission_required = 'posts.delete_post'
+#     #  PostSerializer используется для сериализации сообщения в JSON
+#     #  После сериализации вызывается метод delete() для удаления сообщения
+#     #  Сериализованные данные возвращаются в качестве ответа, чтобы клиент мог подтвердить успешное удаление
+#     def delete(self, request, pk):
+#         try:
+#             post = Post.objects.get(pk=pk)
+#         except Post.DoesNotExist:
+#             return Response(status=status.HTTP_404_NOT_FOUND)
+
+#         serializer = PostSerializer(post)
+
+#         post.delete()
+#         # успешный ответ.
+#         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
 class LikePostAPIView(PermissionRequiredMixin, APIView):

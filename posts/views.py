@@ -45,11 +45,6 @@ class EditPost(PermissionRequiredMixin, UpdateView):
         post = self.get_object()  # Получаем текущий объект поста
         new_id = form.cleaned_data['id']  # Получаем новый ID из формы
 
-        # Проверяем, существует ли пост с таким ID
-        if Post.objects.filter(id=new_id).exists() and new_id != post.id:
-            form.add_error('id', 'Запись с таким ID уже существует.')
-            return self.form_invalid(form)
-
         # Получаем остальные данные из формы
         topic = form.cleaned_data['topic']
         content = form.cleaned_data['content']

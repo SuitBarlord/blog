@@ -14,6 +14,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 
 class EditPostSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
     class Meta:
         model = Post
         fields = ['id', 'topic', 'content', 'author']
