@@ -3,33 +3,43 @@ from .serializers import PostSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import viewsets
 from posts.models import Post
 from .serializers import PostSerializer, PostCreateSerializer, EditPostSerializer, LikePostSerializer
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from users.models import CustomUser
 # Create your views here.
 
 
-class AllPostsAPIView(PermissionRequiredMixin, viewsets.ModelViewSet):
-    permission_required = 'posts.view_post'
-    queryset = Post.objects.all()
-    serializer_class = PostSerializer
-    
 
-class CreatePostAPI(PermissionRequiredMixin, APIView):
-    permission_required = 'posts.add_post'
+class PostList(APIView):
+
+    def get(self, request):
+        # Переделал проверку прав так как использовал get  и post в совокупности в обном представлении
+        # Теперь проверка прав без миксинов а через has_perm
+        if not request.user.has_perm('posts.view_post'):
+            return Response({'message': 'У вас нет прав доступа для просмотра'}, status=status.HTTP_403_FORBIDDEN)
+
+        queryset = Post.objects.all()
+        serializer = PostSerializer(queryset, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request):
+        if not request.user.has_perm('posts.add_post'):
+            return Response({'message': 'У вас нет прав доступа для создания записей'}, status=status.HTTP_403_FORBIDDEN)
+
         serializer = PostCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-from users.models import CustomUser
 
-class UpdatePostAPI(PermissionRequiredMixin, APIView):
-    permission_required = 'posts.change_post'
+    
+class UpdatePostAPI(APIView):
+
     def put(self, request, pk):
+        if not request.user.has_perm('posts.change_post'):
+            return Response({'message': 'У вас нет прав доступа для редактирования'}, status=status.HTTP_403_FORBIDDEN)
         post = Post.objects.get(pk=pk)
         serializer = EditPostSerializer(instance=post, data=request.data, partial=True)
         
@@ -56,6 +66,8 @@ class UpdatePostAPI(PermissionRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, pk):
+        if not request.user.has_perm('posts.delete_post'):
+            return Response({'message': 'У вас нет прав доступа для удаления'}, status=status.HTTP_403_FORBIDDEN)
         try:
             post = Post.objects.get(pk=pk)
         except Post.DoesNotExist:
@@ -64,26 +76,8 @@ class UpdatePostAPI(PermissionRequiredMixin, APIView):
         serializer = PostSerializer(post)
 
         post.delete()
-        # успешный ответ.
+
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-
-# class PostDeleteView(PermissionRequiredMixin, APIView):
-#     permission_required = 'posts.delete_post'
-#     #  PostSerializer используется для сериализации сообщения в JSON
-#     #  После сериализации вызывается метод delete() для удаления сообщения
-#     #  Сериализованные данные возвращаются в качестве ответа, чтобы клиент мог подтвердить успешное удаление
-#     def delete(self, request, pk):
-#         try:
-#             post = Post.objects.get(pk=pk)
-#         except Post.DoesNotExist:
-#             return Response(status=status.HTTP_404_NOT_FOUND)
-
-#         serializer = PostSerializer(post)
-
-#         post.delete()
-#         # успешный ответ.
-#         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
 class LikePostAPIView(PermissionRequiredMixin, APIView):
@@ -91,7 +85,6 @@ class LikePostAPIView(PermissionRequiredMixin, APIView):
     def get(self, request, pk):
         post = Post.objects.get(pk=pk)
         serializer = LikePostSerializer(post)
-
 
         if Post.objects.filter(pk=pk).exists() == True:
             post.number_likes += 1
@@ -108,7 +101,6 @@ class DislikePostAPIView(PermissionRequiredMixin, APIView):
     def get(self, request, pk):
         post = Post.objects.get(pk=pk)
         serializer = LikePostSerializer(post)
-
 
         if Post.objects.filter(pk=pk).exists() == True:
             if post.number_likes == 0:
