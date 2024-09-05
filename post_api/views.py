@@ -85,8 +85,8 @@ class LikePostAPIView(PermissionRequiredMixin, APIView):
     def get(self, request, pk):
         post = Post.objects.get(pk=pk)
         serializer = LikePostSerializer(post)
-
-        if Post.objects.filter(pk=pk).exists() == True:
+        # Сделал просто проверку уже ранее запрошенной записи
+        if post != None:
             post.number_likes += 1
 
             post.save()
@@ -102,7 +102,7 @@ class DislikePostAPIView(PermissionRequiredMixin, APIView):
         post = Post.objects.get(pk=pk)
         serializer = LikePostSerializer(post)
 
-        if Post.objects.filter(pk=pk).exists() == True:
+        if post != None:
             if post.number_likes == 0:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             else:

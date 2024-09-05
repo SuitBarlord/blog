@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from .views import UpdatePostAPI, LikePostAPIView, DislikePostAPIView, PostList
+from .views import PostList, UpdatePostAPI, LikePostAPIView, DislikePostAPIView
 
 urlpatterns = [
     path('posts/', PostList.as_view(), name='api_all_posts'),
